@@ -1,0 +1,70 @@
+---
+title: "p8105_hw5_rd3097"
+output: html_document
+date: "2023-11-13"
+---
+
+Necessary Library
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+#Problem 1
+```{r}
+homocide_data<-read.csv("homicide-data.csv")
+```
+
+describe the raw data
+
+```{r}
+tidied_data <- homocide_data |>
+  mutate(city_state =  paste(city, state, sep = ","))
+disposition_data <- tidied_data|>
+  group_by(city_state)|>
+  summarise(
+    total_homicide = sum(count = n())
+  )|>
+  ungroup()
+unsolved_dispostion_data <- tidied_data|>
+  filter(disposition %in% c("Closed without arrest", "Open/No arrest"))|>
+  group_by(city_state)|>
+  summarise(
+    unsolved_homicide = sum(count = n())
+  )|>
+  ungroup()
+  #since Tulsa,AL doesn't have unsolved homicide, we need to manual add it back
+new_row<- data_frame(city_state = "Tulsa,AL", unsolved_homicide = 0)
+unsolved_disposition_new_data<- 
+  rbind(unsolved_dispostion_data,new_row)
+unsolved_disposition_new_data <- unsolved_disposition_new_data[order(unsolved_disposition_new_data$city_state), ]
+
+```
+
+```{r}
+baltimore_count<-disposition_data|>
+  filter(city_state %in% "Baltimore,MD")
+baltimore_unsolved_count<-unsolved_dispostion_data|>
+  filter(city_state %in% "Baltimore,MD")
+prop_test_baltimore_result <- prop.test(baltimore_unsolved_count$unsolved_homicide,
+                                n = baltimore_count$total_homicide, correct = TRUE)
+save(prop_test_baltimore_result, file = "prop_test_result.RData")
+
+tidy_baltimore_test<- broom::tidy(prop_test_baltimore_result)
+estimated_baltimore_proportion<- tidy_baltimore_test$estimate
+confidence_baltimore_interval<- c(tidy_baltimore_test$conf.low,tidy_baltimore_test$conf.high)
+```
+
+Then run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each.
+```{r}
+prop_test_result <- prop.test(unsolved_disposition_new_data$unsolved_homicide,
+                                n = disposition_data$total_homicide, correct = TRUE)
+
+tidy_test<- broom::tidy(prop_test_result)
+```
+
+### Problem 2
+```{r}
+
+```
+
